@@ -1,0 +1,141 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f8fafc;
+  --foreground: #0f172a;
+  --accent: #2563eb;
+  --accent-light: #dbeafe;
+  --muted: #64748b;
+  --border: #e2e8f0;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+}
+
+.ninas-work-theme {
+  --nw-bg: #eceff4;
+  --nw-bg-alt: #e5e9f0;
+  --nw-surface: #f8fafc;
+  --nw-border: #d8dee9;
+  --nw-text: #2e3440;
+  --nw-muted: #4c566a;
+  --nw-accent: #5e81ac;
+  --nw-accent-soft: #81a1c1;
+  --nw-accent-bg: #e6edf5;
+  --nw-success: #5f7d4a;
+  --nw-success-bg: #eaf3e2;
+  --nw-warn: #9a7532;
+  --nw-warn-bg: #f8f1dd;
+  --nw-danger: #bf616a;
+  --nw-danger-bg: #f8e8ea;
+}
+
+.ninas-work-theme [class*="border-white/10"],
+.ninas-work-theme [class*="border-white/15"] {
+  border-color: var(--nw-border) !important;
+}
+
+.ninas-work-theme [class*="bg-white/5"],
+.ninas-work-theme [class*="bg-slate-950/40"],
+.ninas-work-theme [class*="bg-slate-950/50"],
+.ninas-work-theme [class*="bg-slate-950/60"] {
+  background-color: var(--nw-surface) !important;
+}
+
+.ninas-work-theme [class*="text-white"],
+.ninas-work-theme [class*="text-slate-100"],
+.ninas-work-theme [class*="text-slate-200"] {
+  color: var(--nw-text) !important;
+}
+
+.ninas-work-theme [class*="text-slate-300"],
+.ninas-work-theme [class*="text-slate-400"],
+.ninas-work-theme [class*="placeholder:text-slate-500"] {
+  color: var(--nw-muted) !important;
+}
+
+.ninas-work-theme [class*="text-sky-200"],
+.ninas-work-theme [class*="text-sky-100"] {
+  color: var(--nw-accent) !important;
+}
+
+.ninas-work-theme [class*="bg-sky-400"],
+.ninas-work-theme [class*="hover:bg-sky-300"] {
+  background-color: var(--nw-accent) !important;
+  color: #ffffff !important;
+}
+
+.ninas-work-theme [class*="bg-sky-400/10"],
+.ninas-work-theme [class*="border-sky-400/20"],
+.ninas-work-theme [class*="border-sky-400/40"] {
+  background-color: var(--nw-accent-bg) !important;
+  border-color: var(--nw-accent-soft) !important;
+  color: var(--nw-accent) !important;
+}
+
+.ninas-work-theme [class*="text-emerald-200"],
+.ninas-work-theme [class*="bg-emerald-400/15"] {
+  color: var(--nw-success) !important;
+  background-color: var(--nw-success-bg) !important;
+}
+
+.ninas-work-theme [class*="text-amber-200"],
+.ninas-work-theme [class*="bg-amber-400/15"] {
+  color: var(--nw-warn) !important;
+  background-color: var(--nw-warn-bg) !important;
+}
+
+.ninas-work-theme [class*="text-rose-100"],
+.ninas-work-theme [class*="text-rose-200"],
+.ninas-work-theme [class*="bg-rose-400/10"],
+.ninas-work-theme [class*="border-rose-400/20"] {
+  color: var(--nw-danger) !important;
+  background-color: var(--nw-danger-bg) !important;
+  border-color: var(--nw-danger) !important;
+}
+
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.7s ease both;
+}
+
+.delay-100 {
+  animation-delay: 0.1s;
+}
+
+.delay-200 {
+  animation-delay: 0.2s;
+}
+
+.delay-300 {
+  animation-delay: 0.3s;
+}
+
+.delay-400 {
+  animation-delay: 0.4s;
+}

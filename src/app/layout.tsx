@@ -10,6 +10,9 @@ const geistSans = Geist({
 export const metadata: Metadata = {
   title: "Ninas Work",
   description: "Eigenstaendiges Ninas-Work-Projekt",
+  icons: {
+    icon: "/icon.svg",
+  },
 };
 
 export default function RootLayout({

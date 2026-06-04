@@ -12,7 +12,7 @@ type Employee = {
 
 type Props = {
     initialEmployees: Employee[];
-    currentEmployeeName: string;
+    currentEmployeeName: string; // nichts
 };
 
 export default function NinasWorkAdmin({ initialEmployees, currentEmployeeName }: Props) {

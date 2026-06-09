@@ -319,142 +319,17 @@ async function initialize() {
         await tx`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS is_manual_override BOOLEAN NOT NULL DEFAULT FALSE`;
         await tx`CREATE UNIQUE INDEX IF NOT EXISTS tasks_master_due_unique_idx ON tasks(master_task_id, due_date) WHERE master_task_id IS NOT NULL`;
 
-        const seedEmployees = [
-            {
-                username: "Stationsleitung",
-                description: "Hält die Taubenroute zusammen und hat immer den Überblick.",
-                passwordHash: bcrypt.hashSync("stationsleitung-demo-passwort", 10),
-            },
-            {
-                username: "Mara",
-                description: "Schnell, leise und immer mit Thermobecher unterwegs.",
-                passwordHash: bcrypt.hashSync("mara-demo-passwort", 10),
-            },
-            {
-                username: "Nico",
-                description: "Sieht Probleme, bevor sie zu Problemen werden.",
-                passwordHash: bcrypt.hashSync("nico-demo-passwort", 10),
-            },
-            {
-                username: "Aylin",
-                description: "Organisiert Schichten, Kaffee und gute Stimmung.",
-                passwordHash: bcrypt.hashSync("aylin-demo-passwort", 10),
-            },
-        ];
+        const stationsleitung = {
+            username: "Stationsleitung",
+            description: "Hält die Taubenroute zusammen und hat immer den Überblick.",
+            passwordHash: bcrypt.hashSync("stationsleitung-demo-passwort", 10),
+        };
 
-        for (const employee of seedEmployees) {
-            await tx`
-                INSERT INTO employees (username, description, password_hash)
-                VALUES (${employee.username}, ${employee.description}, ${employee.passwordHash})
-                ON CONFLICT (username) DO NOTHING
-            `;
-        }
-
-        const taskCount = await tx<{ count: number }[]>`SELECT COUNT(*)::int AS count FROM tasks`;
-        if (taskCount[0]?.count > 0) {
-            return;
-        }
-
-        const employees = await tx<EmployeeRecord[]>`
-            SELECT id, username, description
-            FROM employees
+        await tx`
+            INSERT INTO employees (username, description, password_hash)
+            VALUES (${stationsleitung.username}, ${stationsleitung.description}, ${stationsleitung.passwordHash})
+            ON CONFLICT (username) DO NOTHING
         `;
-
-        const byName = new Map(employees.map((employee) => [employee.username, employee.id]));
-        const stationsleitungId = byName.get("Stationsleitung");
-        const maraId = byName.get("Mara");
-        const nicoId = byName.get("Nico");
-        const aylinId = byName.get("Aylin");
-
-        if (!stationsleitungId || !maraId || !nicoId || !aylinId) {
-            throw new Error("Seed employees are missing.");
-        }
-
-        const seedTasks = [
-            {
-                creatorEmployeeId: stationsleitungId,
-                assigneeEmployeeId: maraId,
-                creator: "Stationsleitung",
-                assignee: "Mara",
-                task: "Futterstelle vor dem Morgengang pruefen",
-                area: "Aussenbereich",
-                dueDate: "2026-06-03",
-                done: false,
-                messages: [{ authorEmployeeId: maraId, author: "Mara", text: "Wird direkt nach Dienstbeginn gemacht." }],
-            },
-            {
-                creatorEmployeeId: stationsleitungId,
-                assigneeEmployeeId: nicoId,
-                creator: "Stationsleitung",
-                assignee: "Nico",
-                task: "Taubenbanden am Gleis Sued dokumentieren",
-                area: "Beobachtung",
-                dueDate: "2026-06-04",
-                done: true,
-                messages: [{ authorEmployeeId: nicoId, author: "Nico", text: "Dokumentation liegt im Logbuch. Keine Auffaelligkeiten." }],
-            },
-            {
-                creatorEmployeeId: stationsleitungId,
-                assigneeEmployeeId: aylinId,
-                creator: "Stationsleitung",
-                assignee: "Aylin",
-                task: "Wasserbehaelter reinigen und neu befuellen",
-                area: "Hygiene",
-                dueDate: "2026-06-05",
-                done: false,
-                messages: [{ authorEmployeeId: aylinId, author: "Aylin", text: "Ich uebernehme das nach der Pause." }],
-            },
-        ];
-
-        for (const task of seedTasks) {
-            const insertedTask = await tx<{ id: number }[]>`
-                INSERT INTO tasks (
-                    creator_employee_id,
-                    creator,
-                    assignee_employee_id,
-                    assignee,
-                    task,
-                    area,
-                    due_date,
-                    done
-                ) VALUES (
-                    ${task.creatorEmployeeId},
-                    ${task.creator},
-                    ${task.assigneeEmployeeId},
-                    ${task.assignee},
-                    ${task.task},
-                    ${task.area},
-                    ${task.dueDate},
-                    ${task.done}
-                )
-                RETURNING id
-            `;
-
-            const taskId = insertedTask[0]?.id;
-            for (const message of task.messages) {
-                await tx`
-                    INSERT INTO task_messages (task_id, author_employee_id, author, text)
-                    VALUES (${taskId}, ${message.authorEmployeeId}, ${message.author}, ${message.text})
-                `;
-            }
-        }
-
-        const recurringCount = await tx<{ count: number }[]>`SELECT COUNT(*)::int AS count FROM recurring_master_tasks`;
-        if ((recurringCount[0]?.count ?? 0) === 0) {
-            await tx`
-                INSERT INTO recurring_master_tasks (
-                    creator_employee_id,
-                    assignee_employee_id,
-                    task,
-                    area,
-                    frequency_days,
-                    start_date,
-                    active
-                ) VALUES
-                    (${stationsleitungId}, ${maraId}, ${"Taubendienst"}, ${"Station"}, 1, CURRENT_DATE, TRUE),
-                    (${stationsleitungId}, ${nicoId}, ${"Pflanzen gießen"}, ${"Aussenbereich"}, 2, CURRENT_DATE, TRUE)
-            `;
-        }
     });
 }
 
@@ -544,63 +419,86 @@ async function ensureRecurringTasksHorizon(daysAhead = 14) {
     const templates = await getRecurringMasterTaskRows();
     const todayIso = startOfTodayIso();
     const horizonIso = addDaysIso(todayIso, daysAhead);
+    const activeTemplateIds = templates.filter((template) => template.active).map((template) => template.id);
 
-    for (const template of templates) {
-        if (!template.active) {
-            continue;
-        }
+    if (activeTemplateIds.length === 0) {
+        return;
+    }
 
-        const creatorUsername = template.creatorUsername;
-        const assigneeUsername = template.assigneeUsername || "";
-
-        for (let offset = 0; offset <= daysAhead; offset += 1) {
-            const dueIso = addDaysIso(todayIso, offset);
-            const delta = diffDays(template.startDate, dueIso);
-
-            if (delta < 0 || delta % template.frequencyDays !== 0) {
-                continue;
-            }
-
-            await sql`
-                INSERT INTO tasks (
-                    creator_employee_id,
-                    creator,
-                    assignee_employee_id,
-                    assignee,
-                    master_task_id,
-                    is_manual_override,
-                    task,
-                    area,
-                    due_date,
-                    done
-                )
+    await sql.begin(async (tx) => {
+        await tx`
+            WITH horizon_dates AS (
+                SELECT gs::date AS due_date
+                FROM generate_series(current_date, current_date + ${daysAhead}::int, interval '1 day') AS gs
+            ), recurring_templates AS (
                 SELECT
-                    ${template.creatorEmployeeId},
-                    ${creatorUsername},
-                    ${template.assigneeEmployeeId ?? null},
-                    ${assigneeUsername},
-                    ${template.id},
-                    FALSE,
-                    ${template.task},
-                    ${template.area},
-                    ${dueIso},
-                    FALSE
-                WHERE NOT EXISTS (
-                    SELECT 1
-                    FROM tasks existing
-                    WHERE existing.master_task_id = ${template.id}
-                        AND existing.due_date = ${dueIso}
-                )
-            `;
-        }
+                    r.id AS master_task_id,
+                    r.creator_employee_id,
+                    c.username AS creator_username,
+                    r.assignee_employee_id,
+                    COALESCE(a.username, '') AS assignee_username,
+                    r.task,
+                    r.area,
+                    r.frequency_days,
+                    r.start_date::date AS start_date
+                FROM recurring_master_tasks r
+                JOIN employees c ON c.id = r.creator_employee_id
+                LEFT JOIN employees a ON a.id = r.assignee_employee_id
+                WHERE r.active = TRUE
+            ), candidate_tasks AS (
+                SELECT
+                    t.master_task_id,
+                    t.creator_employee_id,
+                    t.creator_username,
+                    t.assignee_employee_id,
+                    t.assignee_username,
+                    t.task,
+                    t.area,
+                    d.due_date
+                FROM recurring_templates t
+                JOIN horizon_dates d
+                    ON d.due_date >= t.start_date
+                    AND MOD(d.due_date - t.start_date, t.frequency_days) = 0
+            )
+            INSERT INTO tasks (
+                creator_employee_id,
+                creator,
+                assignee_employee_id,
+                assignee,
+                master_task_id,
+                is_manual_override,
+                task,
+                area,
+                due_date,
+                done
+            )
+            SELECT
+                c.creator_employee_id,
+                c.creator_username,
+                c.assignee_employee_id,
+                c.assignee_username,
+                c.master_task_id,
+                FALSE,
+                c.task,
+                c.area,
+                c.due_date,
+                FALSE
+            FROM candidate_tasks c
+            WHERE NOT EXISTS (
+                SELECT 1
+                FROM tasks existing
+                WHERE existing.master_task_id = c.master_task_id
+                    AND existing.due_date = c.due_date
+            )
+        `;
 
-        await sql`
+        await tx`
             DELETE FROM tasks
-            WHERE master_task_id = ${template.id}
+            WHERE master_task_id = ANY(${activeTemplateIds})
                 AND due_date > ${horizonIso}
                 AND is_manual_override = FALSE
         `;
-    }
+    });
 }
 
 async function getTaubenCareTaskRows() {

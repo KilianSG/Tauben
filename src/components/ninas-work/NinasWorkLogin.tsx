@@ -38,7 +38,7 @@ export default function NinasWorkLogin({ employees }: { employees: Employee[] })
             <p className={nw.sectionTitle}>Ninas Work Login</p>
             <h2 className={`mt-3 text-3xl font-semibold ${nw.textPrimary}`}>Anmeldung als Mitarbeiter</h2>
             <p className={`mt-3 text-sm leading-6 ${nw.textMuted}`}>
-                Aktuell ohne Passwortprüfung. Die Anmeldung wird als Cookie gespeichert und ist damit für dieses System persistent.
+                Aktuell ohne Passwortprüfung.
             </p>
 
             {status ? (

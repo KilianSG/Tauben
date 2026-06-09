@@ -21,6 +21,9 @@ export default async function NinasWorkRootPage() {
                         Bitte setze <strong>DATABASE_URL</strong> (oder <strong>POSTGRES_URL</strong>) in deiner Umgebung,
                         damit Ninas Work gestartet werden kann.
                     </p>
+                    <p className="mt-3 text-sm">
+                        <strong>Grund:</strong> {error.message}
+                    </p>
                 </section>
             );
         }

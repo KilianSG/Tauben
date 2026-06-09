@@ -150,6 +150,48 @@ export function isDatabaseConfigError(error: unknown): error is DatabaseConfigEr
     return error instanceof DatabaseConfigError;
 }
 
+function getErrorMessage(error: unknown) {
+    if (error instanceof Error) {
+        return error.message;
+    }
+
+    if (typeof error === "string") {
+        return error;
+    }
+
+    return "Unknown database error.";
+}
+
+function getErrorCode(error: unknown) {
+    if (typeof error === "object" && error !== null && "code" in error) {
+        const code = (error as { code?: unknown }).code;
+        return typeof code === "string" ? code : null;
+    }
+
+    return null;
+}
+
+function toDatabaseConfigError(error: unknown): DatabaseConfigError | null {
+    if (isDatabaseConfigError(error)) {
+        return error;
+    }
+
+    const message = getErrorMessage(error);
+    const code = getErrorCode(error);
+    const normalized = `${code ? `${code} ` : ""}${message}`.toLowerCase();
+
+    const looksLikeConfigIssue =
+        /database_url|postgres_url|connection string|invalid url|url/i.test(normalized) ||
+        /password authentication failed|no pg_hba.conf|invalid authorization specification/i.test(normalized) ||
+        /econnrefused|enotfound|eai_again|connect timeout|connection terminated unexpectedly/i.test(normalized);
+
+    if (!looksLikeConfigIssue) {
+        return null;
+    }
+
+    return new DatabaseConfigError(`Database-Verbindung fehlgeschlagen: ${message}`);
+}
+
 function resolveDatabaseUrl() {
     const dbUrl = process.env.DATABASE_URL ?? process.env.POSTGRES_URL;
     if (!dbUrl) {
@@ -193,7 +235,17 @@ async function ensureInitialized() {
         initPromise = initialize();
     }
 
-    await initPromise;
+    try {
+        await initPromise;
+    } catch (error) {
+        const configError = toDatabaseConfigError(error);
+        if (configError) {
+            throw configError;
+        }
+
+        throw error;
+    }
+
     initialized = true;
 }
 

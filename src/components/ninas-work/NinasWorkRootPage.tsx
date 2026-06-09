@@ -13,22 +13,22 @@ export default async function NinasWorkRootPage() {
     try {
         board = await getBoardData();
     } catch (error) {
-        if (isDatabaseConfigError(error)) {
-            return (
-                <section className={nw.dangerPanel}>
-                    <h2 className="text-2xl font-semibold">Datenbank nicht konfiguriert</h2>
-                    <p className="mt-3 text-sm">
-                        Bitte setze <strong>DATABASE_URL</strong> (oder <strong>POSTGRES_URL</strong>) in deiner Umgebung,
-                        damit Ninas Work gestartet werden kann.
-                    </p>
-                    <p className="mt-3 text-sm">
-                        <strong>Grund:</strong> {error.message}
-                    </p>
-                </section>
-            );
-        }
+        const isConfigError = isDatabaseConfigError(error);
+        const title = isConfigError ? "Datenbank nicht konfiguriert" : "Datenbank nicht erreichbar";
+        const hint = isConfigError
+            ? "Bitte setze DATABASE_URL (oder POSTGRES_URL) in deiner Umgebung, damit Ninas Work gestartet werden kann."
+            : "Die Datenbank konnte nicht geladen werden. Prüfe die Vercel-Umgebungsvariable und die Supabase-Verbindung.";
+        const reason = error instanceof Error ? error.message : "Unbekannter Datenbankfehler.";
 
-        throw error;
+        return (
+            <section className={nw.dangerPanel}>
+                <h2 className="text-2xl font-semibold">{title}</h2>
+                <p className="mt-3 text-sm">{hint}</p>
+                <p className="mt-3 text-sm">
+                    <strong>Grund:</strong> {reason}
+                </p>
+            </section>
+        );
     }
 
     const sessionEmployeeId = await getSessionEmployeeId();
